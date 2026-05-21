@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Card Game Scorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #1a4a2e;
+      background-image:
+        radial-gradient(ellipse at 30% 20%, rgba(45,107,71,0.6) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 80%, rgba(15,46,26,0.8) 0%, transparent 60%),
+        linear-gradient(160deg, #1e5233 0%, #1a4a2e 40%, #122e1d 100%);
+      min-height: 100vh;
+      font-family: 'Lato', sans-serif;
+      color: #f0e6cc;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='1' height='1' fill='rgba(255,255,255,0.02)'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Typography ---- */
+    h1 {
+      font-family: 'Playfair Display', serif;
+      color: #d4a843;
+      text-align: center;
+      font-size: clamp(2rem, 5vw, 3rem);
+      letter-spacing: 3px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+      margin-bottom: 4px;
+    }
+
+    h2 {
+      font-family: 'Playfair Display', serif;
+      color: #d4a843;
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #7aad8e;
+      margin-bottom: 36px;
+      font-size: 0.78rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: rgba(8, 28, 16, 0.55);
+      border: 1px solid rgba(212,168,67,0.45);
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 20px;
+      box-shadow:
+        0 8px 32px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(212,168,67,0.15),
+        inset 0 -1px 0 rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
+    }
+
+    /* ---- Buttons ---- */
+    .btn {
+      font-family: 'Lato', sans-serif;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 13px 32px;
+      font-size: 0.9rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #c9992e 0%, #f0c870 50%, #c9992e 100%);
+      background-size: 200% 100%;
+      color: #1a2e0f;
+      box-shadow: 0 3px 12px rgba(212,168,67,0.35);
+    }
+
+    .btn-gold:hover {
+      background-position: right center;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212,168,67,0.5);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(212,168,67,0.5);
+      color: #d4a843;
+    }
+
+    .btn-outline:hover {
+      background: rgba(212,168,67,0.08);
+      border-color: #d4a843;
+    }
+
+    /* ---- Inputs ---- */
+    input[type="text"], input[type="number"] {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(212,168,67,0.3);
+      border-radius: 7px;
+      color: #f0e6cc;
+      font-family: 'Lato', sans-serif;
+      font-size: 1rem;
+      padding: 10px 14px;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+    input:focus {
+      outline: none;
+      border-color: #d4a843;
+      box-shadow: 0 0 0 3px rgba(212,168,67,0.15);
+    }
+
+    /* ====================================================
+       SETUP SCREEN
+    ==================================================== */
+    .player-count-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .player-count-row span {
+      color: #7aad8e;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      flex: 1;
+    }
+
+    .count-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(212,168,67,0.12);
+      border: 1px solid rgba(212,168,67,0.5);
+      color: #d4a843;
+      font-size: 1.3rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .count-btn:hover { background: rgba(212,168,67,0.25); }
+    .count-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .count-display {
+      font-family: 'Playfair Display', serif;
+      color: #d4a843;
+      font-size: 1.1rem;
+      min-width: 96px;
+      text-align: center;
+    }
+
+    .player-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .player-input-group label {
+      display: block;
+      color: #7aad8e;
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* ====================================================
+       SCORE ENTRY SCREEN
+    ==================================================== */
+    .hole-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .hole-badge {
+      font-family: 'Playfair Display', serif;
+      background: linear-gradient(135deg, #c9992e, #f0c870);
+      color: #1a2e0f;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 8px 22px;
+      border-radius: 22px;
+      letter-spacing: 1px;
+    }
+
+    .progress-dots {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: rgba(212,168,67,0.15);
+      border: 1px solid rgba(212,168,67,0.35);
+      transition: all 0.3s;
+    }
+
+    .dot.done {
+      background: rgba(212,168,67,0.6);
+      border-color: #d4a843;
+    }
+
+    .dot.current {
+      background: #f0c870;
+      border-color: #f0c870;
+      box-shadow: 0 0 8px rgba(240,200,112,0.7);
+    }
+
+    .score-entries {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .player-score-card {
+      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(212,168,67,0.22);
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .player-score-card:hover { border-color: rgba(212,168,67,0.45); }
+
+    .player-score-card h3 {
+      font-family: 'Playfair Display', serif;
+      color: #d4a843;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .score-field-label {
+      display: block;
+      color: #7aad8e;
+      font-size: 0.68rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .score-field { margin-bottom: 12px; }
+
+    /* column match control */
+    .col-match-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .col-match-row .score-field-label {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .match-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 5px;
+      background: rgba(212,168,67,0.12);
+      border: 1px solid rgba(212,168,67,0.4);
+      color: #d4a843;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .match-btn:hover { background: rgba(212,168,67,0.25); }
+    .match-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .match-count {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(212,168,67,0.3);
+      border-radius: 5px;
+      color: #d4a843;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 3px 8px;
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    /* knock penalty */
+    .knock-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+
+    .knock-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #e07070;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .knock-row label {
+      color: #c07070;
+      font-size: 0.72rem;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      line-height: 1.3;
+    }
+
+    .knock-row.active label { color: #e07070; }
+
+    /* round total */
+    .round-total {
+      border-top: 1px solid rgba(212,168,67,0.2);
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .round-total-label {
+      color: #7aad8e;
+      font-size: 0.72rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .round-total-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      color: #f0e6cc;
+      transition: color 0.2s;
+    }
+
+    .round-total-value.negative { color: #2ecc71; }
+
+    /* ====================================================
+       SCOREBOARD TABLE
+    ==================================================== */
+    .scoreboard-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      min-width: 480px;
+    }
+
+    thead th {
+      background: rgba(212,168,67,0.1);
+      color: #d4a843;
+      font-family: 'Playfair Display', serif;
+      padding: 11px 10px;
+      text-align: center;
+      border-bottom: 2px solid rgba(212,168,67,0.35);
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    thead th:first-child { text-align: left; padding-left: 14px; }
+
+    tbody td {
+      padding: 10px 10px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: #d8d0bc;
+    }
+
+    tbody td:first-child { text-align: left; padding-left: 14px; }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tbody tr.leader td { background: rgba(39,174,96,0.1); }
+    tbody tr.leader td:first-child { color: #2ecc71; font-weight: 700; }
+
+    tbody tr.last-place td { background: rgba(192,57,43,0.09); }
+    tbody tr.last-place td:first-child { color: #e74c3c; }
+
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-right: 6px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .rank-1  { background: linear-gradient(135deg,#c9992e,#f0c870); color: #1a2e0f; }
+    .rank-last { background: #c0392b; color: #fff; }
+
+    .score-dash { color: rgba(255,255,255,0.18); }
+    .col-total { font-weight: 700; color: #f0c870 !important; }
+    .col-rank  { color: #7aad8e; font-size: 0.8rem; }
+
+    /* ====================================================
+       END SCREEN
+    ==================================================== */
+    #end-screen { text-align: center; }
+
+    .trophy { font-size: 4rem; margin-bottom: 8px; animation: pulse 1.6s ease-in-out infinite; }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .winner-heading {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      color: #d4a843;
+      margin-bottom: 6px;
+      text-shadow: 0 0 24px rgba(212,168,67,0.4);
+    }
+
+    .winner-detail {
+      color: #a8c5b0;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      margin-bottom: 32px;
+    }
+
+    .final-label {
+      color: #7aad8e;
+      font-size: 0.75rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ====================================================
+       CONFETTI
+    ==================================================== */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* ====================================================
+       UTILITIES
+    ==================================================== */
+    .hidden { display: none !important; }
+    .text-center { text-align: center; }
+    .mt-8  { margin-top: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .flex-center { display: flex; align-items: center; justify-content: center; gap: 12px; }
+
+    @media (max-width: 540px) {
+      .card { padding: 20px 16px; }
+      .score-entries { grid-template-columns: 1fr 1fr; }
+      .player-inputs { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 360px) {
+      .score-entries { grid-template-columns: 1fr; }
+      .player-inputs { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="confetti-canvas" class="hidden"></canvas>
+
+<div class="container">
+  <h1>GOLF</h1>
+  <p class="subtitle">Card Game Scorer</p>
+
+  <!-- ===================== SETUP ===================== -->
+  <div id="setup-screen">
+    <div class="card">
+      <h2>Game Setup</h2>
+
+      <div class="player-count-row">
+        <span>Number of Players</span>
+        <button class="count-btn" id="btn-decrease">−</button>
+        <span class="count-display" id="count-display">4 Players</span>
+        <button class="count-btn" id="btn-increase">+</button>
+      </div>
+
+      <div class="player-inputs" id="player-inputs"></div>
+
+      <div class="text-center">
+        <button class="btn btn-gold" id="btn-start">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCORING ===================== -->
+  <div id="score-screen" class="hidden">
+    <div class="card">
+      <div class="hole-header">
+        <div class="hole-badge" id="hole-label">Hole 1</div>
+        <div class="progress-dots" id="progress-dots"></div>
+      </div>
+
+      <div class="score-entries" id="score-entries"></div>
+
+      <div class="text-center">
+        <button class="btn btn-gold" id="btn-submit">Submit Round</button>
+      </div>
+    </div>
+
+    <!-- Running scoreboard (hidden until hole 1 done) -->
+    <div class="card hidden" id="running-scoreboard">
+      <h2>Leaderboard</h2>
+      <div class="scoreboard-wrap">
+        <table>
+          <thead id="sb-head"></thead>
+          <tbody id="sb-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== END ===================== -->
+  <div id="end-screen" class="hidden">
+    <div class="card">
+      <div class="trophy">🏆</div>
+      <div class="winner-heading" id="winner-heading"></div>
+      <div class="winner-detail" id="winner-detail"></div>
+
+      <p class="final-label">Final Scorecard</p>
+      <div class="scoreboard-wrap">
+        <table>
+          <thead id="final-head"></thead>
+          <tbody id="final-body"></tbody>
+        </table>
+      </div>
+
+      <div class="text-center mt-24">
+        <button class="btn btn-gold" id="btn-play-again">Play Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// STATE
+// ================================================================
+const state = {
+  players: [],           // string[]
+  scores: [],            // scores[hole][playerIdx] = number
+  currentHole: 0,
+  totalHoles: 9,
+};
+
+// ================================================================
+// DOM HELPERS
+// ================================================================
+const $  = id => document.getElementById(id);
+const show = id => $(id).classList.remove('hidden');
+const hide = id => $(id).classList.add('hidden');
+
+// ================================================================
+// SETUP SCREEN
+// ================================================================
+const DEFAULT_NAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve', 'Frank'];
+let playerCount = 4;
+
+function getExistingNames() {
+  return Array.from($('player-inputs').querySelectorAll('input[type="text"]'))
+    .map(inp => inp.value);
+}
+
+function renderPlayerInputs(preserved = []) {
+  const container = $('player-inputs');
+  container.innerHTML = '';
+  for (let i = 0; i < playerCount; i++) {
+    const name = preserved[i] !== undefined ? preserved[i] : (DEFAULT_NAMES[i] || `Player ${i + 1}`);
+    const div = document.createElement('div');
+    div.className = 'player-input-group';
+    div.innerHTML = `
+      <label>Player ${i + 1}</label>
+      <input type="text" placeholder="Enter name" value="${escapeAttr(name)}" maxlength="20">
+    `;
+    container.appendChild(div);
+  }
+  $('count-display').textContent = `${playerCount} Player${playerCount !== 1 ? 's' : ''}`;
+  $('btn-decrease').disabled = playerCount <= 2;
+  $('btn-increase').disabled = playerCount >= 6;
+}
+
+$('btn-decrease').addEventListener('click', () => {
+  if (playerCount <= 2) return;
+  const names = getExistingNames();
+  playerCount--;
+  renderPlayerInputs(names);
+});
+
+$('btn-increase').addEventListener('click', () => {
+  if (playerCount >= 6) return;
+  const names = getExistingNames();
+  playerCount++;
+  renderPlayerInputs(names);
+});
+
+$('btn-start').addEventListener('click', () => {
+  const inputs = $('player-inputs').querySelectorAll('input[type="text"]');
+  state.players = Array.from(inputs).map((inp, i) => inp.value.trim() || `Player ${i + 1}`);
+  state.scores = [];
+  state.currentHole = 0;
+
+  hide('setup-screen');
+  hide('running-scoreboard');
+  renderScoreEntry();
+  show('score-screen');
+});
+
+// ================================================================
+// SCORE ENTRY
+// ================================================================
+function renderProgressDots() {
+  const container = $('progress-dots');
+  container.innerHTML = '';
+  for (let i = 0; i < state.totalHoles; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' +
+      (i < state.currentHole ? ' done' : i === state.currentHole ? ' current' : '');
+    container.appendChild(dot);
+  }
+}
+
+function renderScoreEntry() {
+  $('hole-label').textContent = `Hole ${state.currentHole + 1}`;
+  renderProgressDots();
+
+  const container = $('score-entries');
+  container.innerHTML = '';
+
+  state.players.forEach((name, i) => {
+    const card = document.createElement('div');
+    card.className = 'player-score-card';
+
+    card.innerHTML = `
+      <h3>${escapeHTML(name)}</h3>
+
+      <div class="score-field">
+        <span class="score-field-label">Card Score</span>
+        <input type="number" class="js-card-score" value="0" min="-20" max="99">
+      </div>
+
+      <span class="score-field-label" style="margin-bottom:6px;display:block;">Matched Columns (−2 each)</span>
+      <div class="col-match-row">
+        <button class="match-btn js-match-dec" aria-label="Decrease matched columns" disabled>−</button>
+        <span class="match-count js-match-count">0</span>
+        <button class="match-btn js-match-inc" aria-label="Increase matched columns">+</button>
+        <span style="color:#7aad8e;font-size:0.7rem;margin-left:2px;" class="js-match-bonus">(+0)</span>
+      </div>
+
+      <label class="knock-row" id="knock-label-${i}">
+        <input type="checkbox" id="knock-${i}" class="js-knock">
+        <span class="score-field-label" style="margin-bottom:0;color:#c07070;">Knock Penalty (+10)</span>
+      </label>
+
+      <div class="round-total">
+        <span class="round-total-label">Round Score</span>
+        <span class="round-total-value js-round-total">0</span>
+      </div>
+    `;
+
+    container.appendChild(card);
+
+    // Wire up interactivity
+    const scoreInput  = card.querySelector('.js-card-score');
+    const matchDec    = card.querySelector('.js-match-dec');
+    const matchInc    = card.querySelector('.js-match-inc');
+    const matchCount  = card.querySelector('.js-match-count');
+    const matchBonus  = card.querySelector('.js-match-bonus');
+    const knockCheck  = card.querySelector('.js-knock');
+    const totalDisp   = card.querySelector('.js-round-total');
+
+    function recalc() {
+      const base    = parseInt(scoreInput.value) || 0;
+      const matches = parseInt(matchCount.textContent) || 0;
+      const knock   = knockCheck.checked ? 10 : 0;
+      const colAdj  = matches * -2;
+      const total   = base + colAdj + knock;
+
+      matchBonus.textContent = colAdj === 0 ? '(+0)' : `(${colAdj})`;
+      matchBonus.style.color = colAdj < 0 ? '#2ecc71' : '#7aad8e';
+
+      totalDisp.textContent = total;
+      totalDisp.classList.toggle('negative', total < 0);
+
+      matchDec.disabled = matches <= 0;
+      matchInc.disabled = matches >= 4;
+    }
+
+    matchDec.addEventListener('click', () => {
+      const cur = parseInt(matchCount.textContent);
+      if (cur > 0) { matchCount.textContent = cur - 1; recalc(); }
+    });
+
+    matchInc.addEventListener('click', () => {
+      const cur = parseInt(matchCount.textContent);
+      if (cur < 4) { matchCount.textContent = cur + 1; recalc(); }
+    });
+
+    scoreInput.addEventListener('input', recalc);
+    knockCheck.addEventListener('change', () => {
+      $(`knock-label-${i}`).classList.toggle('active', knockCheck.checked);
+      recalc();
+    });
+
+    recalc();
+  });
+}
+
+$('btn-submit').addEventListener('click', () => {
+  const cards = $('score-entries').querySelectorAll('.player-score-card');
+  const roundScores = Array.from(cards).map((card, i) => {
+    const base    = parseInt(card.querySelector('.js-card-score').value) || 0;
+    const matches = parseInt(card.querySelector('.js-match-count').textContent) || 0;
+    const knock   = card.querySelector('.js-knock').checked ? 10 : 0;
+    return base + (matches * -2) + knock;
+  });
+
+  state.scores.push(roundScores);
+  state.currentHole++;
+
+  if (state.currentHole >= state.totalHoles) {
+    hide('score-screen');
+    showEndScreen();
+  } else {
+    renderScoreEntry();
+    renderScoreboard('sb-head', 'sb-body');
+    show('running-scoreboard');
+  }
+});
+
+// ================================================================
+// SCOREBOARD
+// ================================================================
+function getTotals() {
+  return state.players.map((_, pi) =>
+    state.scores.reduce((sum, round) => sum + (round[pi] ?? 0), 0)
+  );
+}
+
+function getRanks(totals) {
+  const sorted = [...new Set(totals)].sort((a, b) => a - b);
+  return totals.map(t => sorted.indexOf(t) + 1);
+}
+
+function renderScoreboard(headId, bodyId) {
+  const head      = $(headId);
+  const body      = $(bodyId);
+  const totals    = getTotals();
+  const ranks     = getRanks(totals);
+  const minTotal  = Math.min(...totals);
+  const maxTotal  = Math.max(...totals);
+  const holesPlayed = state.scores.length;
+  const numPlayers  = state.players.length;
+
+  // Header
+  let hdr = '<tr><th>Player</th>';
+  for (let h = 1; h <= state.totalHoles; h++) hdr += `<th>H${h}</th>`;
+  hdr += '<th>Total</th><th>Rank</th></tr>';
+  head.innerHTML = hdr;
+
+  // Sort by total ascending
+  const order = state.players.map((_, i) => i).sort((a, b) => totals[a] - totals[b]);
+
+  body.innerHTML = '';
+  order.forEach(pi => {
+    const isLeader = totals[pi] === minTotal;
+    const isLast   = !isLeader && numPlayers > 1 && totals[pi] === maxTotal && minTotal !== maxTotal;
+
+    const tr = document.createElement('tr');
+    if (isLeader) tr.classList.add('leader');
+    else if (isLast) tr.classList.add('last-place');
+
+    let rankBadge = '';
+    if (ranks[pi] === 1) {
+      rankBadge = `<span class="rank-badge rank-1">${ranks[pi]}</span>`;
+    } else if (isLast) {
+      rankBadge = `<span class="rank-badge rank-last">${ranks[pi]}</span>`;
+    }
+
+    let cells = `<td>${rankBadge}${escapeHTML(state.players[pi])}</td>`;
+    for (let h = 0; h < state.totalHoles; h++) {
+      if (h < holesPlayed) {
+        cells += `<td>${state.scores[h][pi]}</td>`;
+      } else {
+        cells += `<td class="score-dash">–</td>`;
+      }
+    }
+    cells += `<td class="col-total">${totals[pi]}</td>`;
+    cells += `<td class="col-rank">${ranks[pi]}</td>`;
+
+    tr.innerHTML = cells;
+    body.appendChild(tr);
+  });
+}
+
+// ================================================================
+// END SCREEN
+// ================================================================
+function showEndScreen() {
+  const totals   = getTotals();
+  const minTotal = Math.min(...totals);
+  const winners  = state.players.filter((_, i) => totals[i] === minTotal);
+
+  if (winners.length === 1) {
+    $('winner-heading').textContent = `${winners[0]} Wins!`;
+  } else {
+    $('winner-heading').textContent = 'It's a Tie!';
+  }
+
+  $('winner-detail').textContent =
+    winners.length === 1
+      ? `${winners[0]} finishes with ${minTotal} points — lowest score wins!`
+      : `${winners.join(' & ')} tied with ${minTotal} points each.`;
+
+  renderScoreboard('final-head', 'final-body');
+  show('end-screen');
+  startConfetti();
+}
+
+$('btn-play-again').addEventListener('click', () => {
+  stopConfetti();
+  hide('end-screen');
+  renderPlayerInputs(state.players);
+  show('setup-screen');
+});
+
+// ================================================================
+// CONFETTI
+// ================================================================
+const confettiCanvas = $('confetti-canvas');
+const ctx = confettiCanvas.getContext('2d');
+let confettiRaf = null;
+let confettiParticles = [];
+
+const CONF_COLORS = [
+  '#d4a843','#f0c870','#2ecc71','#e74c3c',
+  '#9b59b6','#3498db','#f0e6cc','#e67e22',
+];
+
+function makeParticle() {
+  return {
+    x:     Math.random() * confettiCanvas.width,
+    y:     Math.random() * -confettiCanvas.height * 0.5,
+    w:     Math.random() * 10 + 5,
+    h:     Math.random() * 5 + 3,
+    color: CONF_COLORS[Math.floor(Math.random() * CONF_COLORS.length)],
+    speed: Math.random() * 2.5 + 1.5,
+    drift: (Math.random() - 0.5) * 1.2,
+    angle: Math.random() * Math.PI * 2,
+    spin:  (Math.random() - 0.5) * 0.12,
+  };
+}
+
+function startConfetti() {
+  confettiCanvas.classList.remove('hidden');
+  confettiCanvas.width  = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  confettiParticles = Array.from({ length: 180 }, makeParticle);
+
+  function frame() {
+    ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    confettiParticles.forEach(p => {
+      p.y     += p.speed;
+      p.x     += p.drift;
+      p.angle += p.spin;
+      if (p.y > confettiCanvas.height + 20) {
+        Object.assign(p, makeParticle(), { x: Math.random() * confettiCanvas.width, y: -20 });
+      }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = 0.88;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    confettiRaf = requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function stopConfetti() {
+  if (confettiRaf) { cancelAnimationFrame(confettiRaf); confettiRaf = null; }
+  confettiCanvas.classList.add('hidden');
+  ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiParticles = [];
+}
+
+window.addEventListener('resize', () => {
+  if (!confettiCanvas.classList.contains('hidden')) {
+    confettiCanvas.width  = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+  }
+});
+
+// ================================================================
+// ESCAPE HELPERS
+// ================================================================
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function escapeAttr(str) {
+  return str.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ================================================================
+// INIT
+// ================================================================
+renderPlayerInputs();
+</script>
+</body>
+</html>
